@@ -23,6 +23,7 @@
     **Publication:** under review
 
     [![Paper](https://img.shields.io/badge/Paper-PDF-red)](https://doi.org/10.48550/arXiv.2506.14785)
+    [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18684508.svg)](https://doi.org/10.5281/zenodo.18684508)
     [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 
