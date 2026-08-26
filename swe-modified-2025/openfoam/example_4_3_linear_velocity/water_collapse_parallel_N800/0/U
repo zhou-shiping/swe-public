@@ -1,0 +1,158 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  12
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       volVectorField;
+    location    "0";
+    object      U;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 1 -1 0 0 0 0];
+
+//internalField   uniform (0 0 0);
+
+internalField   #codeStream
+{
+    codeInclude
+    #{
+        #include "volFields.H"
+        #include "vectorField.H"
+    #};
+
+    codeOptions
+    #{
+        -I$(LIB_SRC)/finiteVolume/lnInclude \
+        -I$(LIB_SRC)/meshTools/lnInclude
+    #};
+
+    codeLibs
+    #{
+        -lfiniteVolume \
+        -lmeshTools
+    #};
+
+    code
+    #{
+        // Access the mesh and the internal field for velocity U
+        const IOdictionary& d = static_cast<const IOdictionary&>(dict);
+        const fvMesh& mesh = refCast<const fvMesh>(d.db());
+        vectorField U(mesh.nCells(), vector(0., 0., 0.));
+
+        // Loop over all points and set the initial velocity
+        forAll(U, i)
+        {
+            // Get the x- and y-coordinates of the cell center
+            const scalar x = mesh.C()[i][0];
+            const scalar y = mesh.C()[i][1];
+            const scalar z = mesh.C()[i][2];
+
+            // Initialize the velocity profile
+            if (y<=1.0)
+            {
+                U[i] = vector(0.25*y, 0., 0.25*y);
+            }
+            else if (y<=1.5 && pow(x-50., 2)+pow(z-50., 2) <= pow(15., 2))
+            {
+                U[i] = vector(0.25*y, 0., 0.25*y);
+            }
+        }
+        writeEntry(os, "", U);
+
+    #};
+};
+
+boundaryField
+{
+    #includeEtc "caseDicts/setConstraintTypes"
+
+    inlet1
+    {
+        type		codedFixedValue;
+        value       uniform (0 0 0);
+        name        linearVelocityInlet1;
+
+        code
+        #{
+            const fvPatch& boundaryPatch = patch();
+            const vectorField& Cf = boundaryPatch.Cf();
+            vectorField inletVelocity(Cf.size(), vector(0., 0., 0.));
+
+            // Loop over all points and set the initial velocity
+            forAll(Cf, i)
+            {
+                // Get the x- and y-coordinates of the cell center
+                // const scalar x = Cf[i].x();
+                const scalar y = Cf[i].y();
+
+                // Initialize the velocity
+                if (y<=1.)
+                {
+                    inletVelocity[i] = vector(0.25*y, 0., 0.25*y);
+                }
+            }
+
+            operator==(inletVelocity);
+        #};
+    }
+
+    inlet2
+    {
+        type		codedFixedValue;
+        value       uniform (0 0 0);
+        name        linearVelocityInlet2;
+
+        code
+        #{
+            const fvPatch& boundaryPatch = patch();
+            const vectorField& Cf = boundaryPatch.Cf();
+            vectorField inletVelocity(Cf.size(), vector(0., 0., 0.));
+
+            // Loop over all points and set the initial velocity
+            forAll(Cf, i)
+            {
+                // Get the x- and y-coordinates of the cell center
+                // const scalar x = Cf[i].x();
+                const scalar y = Cf[i].y();
+
+                // Initialize the velocity
+                if (y<=1.)
+                {
+                    inletVelocity[i] = vector(0.25*y, 0., 0.25*y);
+                }
+            }
+
+            operator==(inletVelocity);
+        #};
+    }
+
+    outlet1
+    {
+        type        zeroGradient;
+    }
+
+    outlet2
+    {
+        type        zeroGradient;
+    }
+
+    wall
+    {
+        type            noSlip;
+    }
+
+    atmosphere
+    {
+        type            pressureInletOutletVelocity;
+        value           uniform (0. 0. 0.);
+    }
+}
+
+
+// ************************************************************************* //

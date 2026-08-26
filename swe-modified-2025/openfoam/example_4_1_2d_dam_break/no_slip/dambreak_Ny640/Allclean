@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -eo pipefail
+
+cd "$(dirname "$0")" || exit 1
+
+. "$WM_PROJECT_DIR/bin/tools/CleanFunctions"
+
+cleanCase
+
+# Restore mesh-independent field templates before blockMesh/setFields.
+for field in alpha.water tracer.water tracer.air; do
+    cp "0/${field}.orig" "0/${field}"
+done
+#------------------------------------------------------------------------------

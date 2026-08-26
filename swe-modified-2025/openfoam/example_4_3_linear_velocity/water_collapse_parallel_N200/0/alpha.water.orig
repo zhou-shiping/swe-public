@@ -1,0 +1,89 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  12
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       volScalarField;
+    location    "0";
+    object      alpha.water;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [];
+
+internalField   uniform 0;
+
+boundaryField
+{
+    #includeEtc "caseDicts/setConstraintTypes"
+    
+    inlet1
+    {
+        type            codedFixedValue;
+        value           uniform 0;
+        name            waterHeightInlet1;
+
+        code
+        #{
+            const vectorField& Cf = patch().Cf();
+            scalarField inletAlpha(Cf.size(), 0.0);
+
+            forAll(Cf, facei)
+            {
+                inletAlpha[facei] = Cf[facei].y() <= 1.0 ? 1.0 : 0.0;
+            }
+
+            operator==(inletAlpha);
+        #};
+    };
+    
+    outlet1
+    {
+        type            zeroGradient;
+    };
+
+    inlet2
+    {
+        type            codedFixedValue;
+        value           uniform 0;
+        name            waterHeightInlet2;
+
+        code
+        #{
+            const vectorField& Cf = patch().Cf();
+            scalarField inletAlpha(Cf.size(), 0.0);
+
+            forAll(Cf, facei)
+            {
+                inletAlpha[facei] = Cf[facei].y() <= 1.0 ? 1.0 : 0.0;
+            }
+
+            operator==(inletAlpha);
+        #};
+    };
+    
+    outlet2
+    {
+        type            zeroGradient;
+    };
+
+    wall
+    {
+        type            zeroGradient;
+    };
+
+    atmosphere
+    {
+        type            inletOutlet;
+        inletValue      $internalField;
+        value           $internalField;
+    }
+}
+
+
+// ************************************************************************* //

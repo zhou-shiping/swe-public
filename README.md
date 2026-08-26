@@ -1,18 +1,25 @@
 # Repository Structure
 
-```
-├── swe-modified-2025
-│   ├── OpenFOAM-tests/                   #
-│   │   ├── Fig1_Openfoam_accuracy_code   #
-│   │   ├── 3D-initial-velocity-zero      #
-│   │   └── 3D-initial-velocity-nonzero   #
-│   ├── MHSWME/                           #
-│   │   ├── SWE_1D_dambreak               #
-│   │   └── SWE_2D_dambreak               #
-│   └── README.md                         #
-├── Paper 2: to be updated
-│   └── README.md                         #
-└── README.md                             # This file
+```text
+.
+├── swe-modified-2025/
+│   ├── environment/
+│   │   ├── README.md
+│   │   └── requirements.txt
+│   ├── moment_models/
+│   │   ├── example_4_1_2d_dam_break/
+│   │   ├── example_4_2_radial_zero_velocity/
+│   │   └── example_4_3_linear_velocity/
+│   ├── openfoam/
+│   │   ├── example_4_1_2d_dam_break/
+│   │   ├── example_4_2_radial_zero_velocity/
+│   │   └── example_4_3_linear_velocity/
+│   ├── .gitignore
+│   ├── README.md
+│   └── SOURCE_MANIFEST.md
+├── .gitignore
+├── LICENSE
+└── README.md
 ```
 
 # Works related
@@ -34,82 +41,47 @@
 2. To be updated.
 
 
+## Package Scope
+
+The `swe-modified-2025/` package contains active data-generation source code only.
+It includes OpenFOAM case definitions and Python moment-model generators for Examples 4.1--4.3.
+Existing numerical data, figures, result summaries, plotting, export, postprocessing, Slurm files, and private notes are not included.
+
+See [`swe-modified-2025/README.md`](swe-modified-2025/README.md) for the package overview and [`swe-modified-2025/SOURCE_MANIFEST.md`](swe-modified-2025/SOURCE_MANIFEST.md) for the source mapping.
+
 ## How to Use
-### Running OpenFoam on Linux or Windows with WSL2
-#### 1. Install OpenFOAM
-Install OpenFOAM by following the official OpenFOAM guide. This project was tested using OpenFOAM v12. Make sure the OpenFOAM environment is sourced before running the case.
 
-#### 2. Run the OpenFOAM Simulation
-  Open a terminal in the case directory. It is recommended to clean all preivous results before starting a new simulation.
+### OpenFOAM generators
 
-  ```bash
-  chmod +x Allclean
-  ./Allclean
+The case dictionaries use OpenFOAM 12.
+Load a compatible OpenFOAM environment, enter the desired resolution folder under `swe-modified-2025/openfoam/`, and run:
 
-  blockMesh
-  setFields
-  foamRun
-  ```
-  This will:
-   - remove old simulation data
-   - generate the computational mesh
-   - initialize the fields, and
-   - run the OpenFOAM solver
-#### 3. Run on an HPC Cluster
-For high-resolution simulations, the case can be run on an HPC cluster. In this case, you may need to follow the cluster's job submission rules and prepare a batch script accordingly.
-
-In the job script, specify:
-- the number of nodes,
-- the number of CPUs per node,
-- the memory requested per CPU, and
-- the wall-clock time limit
-
-This setup is especially convenient when running **parallel simulations** for large-scale or high-resolution cases.
-
-## swe-modified-2025/MHSWME/SWE_1D_dambreak
-Numerical solver for the 1D dam break problem using the SWE, HSWME, MSWE, and MSHWMEs.
-
-To run the dam break simulation suite with the default configuration:
 ```bash
-python test_run.py
-```
-This will run all combinations of model type (`original`, `modified`) and expansion order (`var_num` = 2, 3, 4) and save the results as `.npy` files under a `Data/` directory that is created automatically.
-
-To use the solver in your own script, import from `mswme` directly:
-
-```python
-from mswme import swme_solver, save_data, load_data
-
-U_history, dt_history = swme_solver(
-    u_scale=100,
-    h_scale=1.5,
-    h_left=1.0,
-    h_right=2/3,
-    length=1.0,
-    gravity=G,
-    nx=4000,
-    cfl=0.7,
-    time_end=3.0,
-    alpha0=alpha0,
-    r0=R0,
-    epsilon=epsilon,
-    model_type='modified',   # 'original' or 'modified'
-    var_num=3,               # 2: SWE, 3: SWME1, 4: SWME2
-    t_target=[1.0, 2.0, 3.0],
-    initial_case='init'
-)
+./Allclean
+./Allrun
 ```
 
-Saved `.npy` files can be loaded back with:
+Each case script builds the mesh, initializes the fields, and runs the configured solver.
 
-```python
-from mswme import load_data
-data = load_data('Data/M-SWME_data_k10000000000.0.npy')
-# Keys: 'U_history', 'dt_history', 'dx', 'time_end', 'L', 'k_coe'
+### Moment-model generators
+
+Install the Python dependency with:
+
+```bash
+python3 -m pip install -r swe-modified-2025/environment/requirements.txt
 ```
 
-### Output
-Results are stored as NumPy `.npy` dictionaries in the `Data/` directory, named by model and friction coefficient, e.g. `M-SWME_data_k1e+10.npy`. Each file contains the full time history of the state vector (`U_history`), the time step history (`dt_history`), grid spacing (`dx`), end time, domain length, and friction coefficient.
+The main generator entry points are:
+
+```text
+swe-modified-2025/moment_models/example_4_1_2d_dam_break/low_order/generate_all.sh
+swe-modified-2025/moment_models/example_4_1_2d_dam_break/order_study/generate_all.sh
+swe-modified-2025/moment_models/example_4_2_radial_zero_velocity/generate_data.py
+swe-modified-2025/moment_models/example_4_3_linear_velocity/generate_data.py
+```
+
+Run any Python generator with `--help` to see its mesh, model, output-time, and output-directory options.
+Generated data remain local and are excluded by the package `.gitignore`.
 
 ## Citation
 
@@ -122,4 +94,3 @@ Results are stored as NumPy `.npy` dictionaries in the `Data/` directory, named 
   doi = {10.48550/arXiv.2506.14785}
 }
 ```
-

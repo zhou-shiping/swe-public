@@ -1,0 +1,134 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  12
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       volVectorField;
+    location    "0";
+    object      U;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 1 -1 0 0 0 0];
+
+//internalField   uniform (0 0 0);
+
+
+internalField   #codeStream
+{
+    codeInclude
+   #{
+        #include "volFields.H"
+        #include "vectorField.H"
+    #};
+
+    codeOptions
+    #{
+        -I$(LIB_SRC)/finiteVolume/lnInclude \
+        -I$(LIB_SRC)/meshTools/lnInclude
+    #};
+
+    codeLibs
+    #{
+        -lfiniteVolume \
+        -lmeshTools
+    #};
+
+    code
+    #{
+        // Access the mesh and the internal field for velocity U
+        const IOdictionary& d = static_cast<const IOdictionary&>(dict);
+        const fvMesh& mesh = refCast<const fvMesh>(d.db());
+        vectorField U(mesh.nCells(), vector(0., 0., 0.));
+
+        // Loop over all points and set the initial velocity
+        forAll(U, i)
+        {
+            // Get the x- and y-coordinates of the cell center
+            const scalar x = mesh.C()[i][0];
+            const scalar y = mesh.C()[i][1];
+            //const scalar z = mesh.C()[i][2];
+	    
+	    // Initialize the velocity with the quadratic profile:
+            // u = U_s (2 eta - eta^2), eta = y / h
+            if (x < 50 && y < 1.5)
+            {
+                const scalar eta = y/1.5;
+                U[i] = vector(0.25*(2.0*eta - eta*eta), 0., 0.);
+            }
+            else if (x >= 50 && y < 1.0)
+            {
+                const scalar eta = y/1.0;
+                U[i] = vector(0.25*(2.0*eta - eta*eta), 0., 0.);
+            }
+            else
+            {
+                U[i] = vector(0., 0., 0.);
+            }
+        }
+        writeEntry(os, "", U);
+    #};
+};
+
+
+boundaryField
+{
+    #includeEtc "caseDicts/setConstraintTypes"
+
+    inlet
+    {
+	    type		codedFixedValue;
+        value       uniform (0 0 0);
+        name        codedPatchBC;
+
+        code
+        #{
+            const fvPatch& boundaryPatch = patch();
+            const vectorField& Cf = boundaryPatch.Cf();
+            vectorField& field = *this;
+	    
+            // Loop over all points and set the initial velocity
+            forAll(Cf, i)
+            {
+                // Get the x- and y-coordinates of the cell center
+                const scalar x = Cf[i].x();
+                const scalar y = Cf[i].y();
+
+                // Initialize the velocity
+                if (y < 1.5)
+                {
+		    const scalar eta = y/1.5;
+                    field[i] = vector(0.25*(2.0*eta - eta*eta), 0., 0.);
+                }
+		else
+		{
+		    field[i] = vector(0., 0., 0.);
+		}
+            }
+        #};
+    }
+
+    outlet
+    {
+        type        zeroGradient;
+    }
+
+    lowerWall
+    {
+        type            noSlip;
+    }
+
+    atmosphere
+    {
+        type            pressureInletOutletVelocity;
+        value           uniform (0 0 0);
+    }
+}
+
+
+// ************************************************************************* //
